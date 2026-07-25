@@ -1,0 +1,7 @@
+telethon>=1.36
+streamlit>=1.38
+sqlalchemy>=2.0
+python-dotenv>=1.0
+pydantic>=2.8
+requests>=2.32
+pandas>=2.2

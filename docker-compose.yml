@@ -1,0 +1,18 @@
+services:
+  collector:
+    build: .
+    command: python -m app.collector
+    env_file: .env
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+
+  dashboard:
+    build: .
+    command: streamlit run app/dashboard.py --server.address=0.0.0.0
+    env_file: .env
+    volumes:
+      - ./data:/data
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
