@@ -7,6 +7,8 @@ from .db import init_db, SessionLocal, Offer
 from .parser import parse_offer
 from .market import find_market_snapshot
 from .scoring import evaluate
+from .procurement import save_procurement_analysis
+
 
 def format_alert(offer: Offer) -> str:
     return (
@@ -20,6 +22,7 @@ def format_alert(offer: Offer) -> str:
         f"IOB: {offer.score:.1f}/100\n"
         f"Link: {offer.url}"
     ).replace(",", "X").replace(".", ",").replace("X", ".")
+
 
 async def main() -> None:
     init_db()
@@ -70,11 +73,34 @@ async def main() -> None:
                 db.rollback()
                 return
 
+        # Alimenta o novo núcleo de inteligência de compras sem quebrar
+        # o dashboard legado durante a transição da V1.
+        with SessionLocal() as db:
+            normalized_offer = save_procurement_analysis(
+                db,
+                supplier_name=source,
+                external_id=message_key,
+                title=parsed.title,
+                url=parsed.url,
+                buy_price=parsed.buy_price,
+                market_price=market.sustainable_price,
+                competitors=market.competitors,
+                net_profit=result.net_profit,
+                roi_pct=result.roi_pct,
+                score=result.score,
+                approved=result.approved,
+                reason=result.reason,
+                source_kind="telegram",
+            )
+            if normalized_offer is not None:
+                db.commit()
+
         if result.approved and settings.telegram_alert_chat:
             await client.send_message(settings.telegram_alert_chat, format_alert(offer))
 
     print("BV-TECH Radar IA ativo.")
     await client.run_until_disconnected()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
